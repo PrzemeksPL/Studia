@@ -202,12 +202,17 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Instru
 
   <!-- UPLOAD -->
   <div id="s-upload" class="screen">
-    <div class="upload-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+    <div class="upload-zone" id="drop-zone">
       <div class="uz-icon">📁</div>
-      <div class="uz-title">Wgraj materiały</div>
-      <div class="uz-sub">PDF, PPTX, DOCX, zdjęcia<br>Dotknij lub przeciągnij pliki</div>
+      <div class="uz-title">Przeciągnij pliki lub foldery</div>
+      <div class="uz-sub">PDF, PPTX, DOCX, zdjęcia</div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <button class="btn-primary" style="flex:1;padding:11px;font-size:13px" onclick="document.getElementById('file-input').click()">📄 Pliki</button>
+      <button class="btn-primary" style="flex:1;padding:11px;font-size:13px;background:var(--bg3);color:var(--text);border:1px solid var(--border2)" onclick="document.getElementById('folder-input').click()">📂 Folder</button>
     </div>
     <input type="file" id="file-input" multiple accept=".pdf,.pptx,.ppt,.docx,.doc,.jpg,.jpeg,.png,.txt" style="display:none" onchange="filesSelected(this)">
+    <input type="file" id="folder-input" multiple webkitdirectory style="display:none" onchange="folderSelected(this)">
     <div id="queue-list"></div>
     <div id="queue-actions" style="display:none">
       <label class="form-label">Przedmiot</label>
@@ -448,7 +453,18 @@ function renderFiles() {
 
 // ── UPLOAD ──
 function filesSelected(input) {
-  queuedFiles = Array.from(input.files);
+  queuedFiles = Array.from(input.files).map(f => ({ file: f, subject: null }));
+  renderQueue();
+}
+
+function folderSelected(input) {
+  const files = Array.from(input.files);
+  // Wyciągnij nazwę folderu z ścieżki (webkitRelativePath = "FolderName/plik.pdf")
+  queuedFiles = files.map(f => {
+    const parts = f.webkitRelativePath.split('/');
+    const subject = parts.length > 1 ? parts[0] : null;
+    return { file: f, subject };
+  });
   renderQueue();
 }
 
@@ -457,20 +473,56 @@ function renderQueue() {
   const qa = document.getElementById('queue-actions');
   const ss = document.getElementById('subject-select');
   if (queuedFiles.length === 0) { ql.innerHTML = ''; qa.style.display = 'none'; return; }
-  ql.innerHTML = '<div class="slabel">Pliki do wgrania</div>' + queuedFiles.map((f,i) =>
-    `<div class="queued-file">
-      <span style="font-size:18px">${getFileIcon(f.name).icon}</span>
-      <span class="qfname">${f.name}</span>
-      <span class="qfsize">${formatSize(f.size)}</span>
-      <button class="rm-btn" onclick="removeQueued(${i})">✕</button>
-    </div>`
-  ).join('');
-  qa.style.display = 'block';
-  const subjects = getSubjects().filter(s => s !== 'Wszystkie');
-  ss.innerHTML = subjects.map(s => `<option>${s}</option>`).join('') + '<option value="__new__">+ Nowy przedmiot…</option>';
-  ss.onchange = () => {
-    document.getElementById('new-subject').style.display = ss.value === '__new__' ? 'block' : 'none';
-  };
+
+  // Sprawdź czy pliki mają już przypisane foldery
+  const hasFolders = queuedFiles.some(q => q.subject);
+
+  if (hasFolders) {
+    // Grupuj po folderach
+    const groups = {};
+    queuedFiles.forEach(q => {
+      const key = q.subject || 'Inne';
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(q);
+    });
+    ql.innerHTML = Object.entries(groups).map(([folder, items]) =>
+      `<div style="margin-bottom:10px">
+        <div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--accent);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">📂 ${folder} (${items.length} plików)</div>
+        ${items.map((q,i) => {
+          const realIdx = queuedFiles.indexOf(q);
+          return `<div class="queued-file">
+            <span style="font-size:16px">${getFileIcon(q.file.name).icon}</span>
+            <span class="qfname">${q.file.name}</span>
+            <span class="qfsize">${formatSize(q.file.size)}</span>
+            <button class="rm-btn" onclick="removeQueued(${realIdx})">✕</button>
+          </div>`;
+        }).join('')}
+      </div>`
+    ).join('');
+    qa.style.display = 'block';
+    // Ukryj select przedmiotu — używamy nazw folderów
+    ss.style.display = 'none';
+    document.getElementById('new-subject').style.display = 'none';
+    document.querySelector('#queue-actions .form-label') && (document.querySelector('#queue-actions .form-label').style.display = 'none');
+  } else {
+    ql.innerHTML = '<div class="slabel">Pliki do wgrania</div>' + queuedFiles.map((q,i) =>
+      `<div class="queued-file">
+        <span style="font-size:18px">${getFileIcon(q.file.name).icon}</span>
+        <span class="qfname">${q.file.name}</span>
+        <span class="qfsize">${formatSize(q.file.size)}</span>
+        <button class="rm-btn" onclick="removeQueued(${i})">✕</button>
+      </div>`
+    ).join('');
+    qa.style.display = 'block';
+    ss.style.display = 'block';
+    const lbl = document.querySelector('#queue-actions .form-label');
+    if (lbl) lbl.style.display = 'block';
+    const subjects = getSubjects().filter(s => s !== 'Wszystkie');
+    ss.innerHTML = subjects.map(s => `<option>${s}</option>`).join('') + '<option value="__new__">+ Nowy przedmiot…</option>';
+    ss.onchange = () => {
+      document.getElementById('new-subject').style.display = ss.value === '__new__' ? 'block' : 'none';
+    };
+  }
 }
 
 function removeQueued(i) {
@@ -481,28 +533,36 @@ function removeQueued(i) {
 function saveFiles() {
   if (queuedFiles.length === 0) return;
   const ss = document.getElementById('subject-select');
-  let subject = ss.value === '__new__'
-    ? (document.getElementById('new-subject').value.trim() || 'Inne')
-    : (ss.value || 'Inne');
-  const newEntries = queuedFiles.map(f => ({
-    name: f.name, size: f.size, subject, ts: Date.now(),
-    dataUrl: null
-  }));
-  // Read first file as dataUrl for preview
-  const readers = queuedFiles.map((f, i) => new Promise(resolve => {
+  const hasFolders = queuedFiles.some(q => q.subject);
+
+  const newEntries = queuedFiles.map(q => {
+    let subject;
+    if (hasFolders) {
+      subject = q.subject || 'Inne';
+    } else {
+      subject = ss.value === '__new__'
+        ? (document.getElementById('new-subject').value.trim() || 'Inne')
+        : (ss.value || 'Inne');
+    }
+    return { name: q.file.name, size: q.file.size, subject, ts: Date.now(), dataUrl: null, _file: q.file };
+  });
+
+  const readers = newEntries.map((entry, i) => new Promise(resolve => {
     const r = new FileReader();
-    r.onload = e => { newEntries[i].dataUrl = e.target.result; resolve(); };
-    r.readAsDataURL(f);
+    r.onload = e => { entry.dataUrl = e.target.result; resolve(); };
+    r.readAsDataURL(entry._file);
   }));
+
   Promise.all(readers).then(() => {
+    newEntries.forEach(e => delete e._file);
     files = [...newEntries, ...files];
     try { localStorage.setItem('mat_files', JSON.stringify(files)); } catch(e) {
-      // storage full — store without dataUrl
       files.forEach(f => f.dataUrl = null);
       localStorage.setItem('mat_files', JSON.stringify(files));
     }
     queuedFiles = [];
     document.getElementById('file-input').value = '';
+    document.getElementById('folder-input').value = '';
     renderQueue();
     renderAll();
     showToast('✅ Zapisano ' + newEntries.length + ' plik(ów)');
@@ -510,15 +570,46 @@ function saveFiles() {
   });
 }
 
-// drag & drop
+// drag & drop z obsługą folderów
 const dz = document.getElementById('drop-zone');
 dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
 dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
-dz.addEventListener('drop', e => {
+dz.addEventListener('drop', async e => {
   e.preventDefault(); dz.classList.remove('drag');
-  queuedFiles = Array.from(e.dataTransfer.files);
+  const items = Array.from(e.dataTransfer.items);
+  queuedFiles = [];
+  for (const item of items) {
+    if (item.kind === 'file') {
+      const entry = item.webkitGetAsEntry ? item.webkitGetAsEntry() : null;
+      if (entry && entry.isDirectory) {
+        await readDir(entry, entry.name);
+      } else {
+        const f = item.getAsFile();
+        if (f) queuedFiles.push({ file: f, subject: null });
+      }
+    }
+  }
   renderQueue();
 });
+
+async function readDir(dirEntry, folderName) {
+  return new Promise(resolve => {
+    const reader = dirEntry.createReader();
+    reader.readEntries(async entries => {
+      for (const entry of entries) {
+        if (entry.isFile) {
+          await new Promise(r => entry.file(f => {
+            queuedFiles.push({ file: f, subject: folderName });
+            r();
+          }));
+        } else if (entry.isDirectory) {
+          await readDir(entry, folderName + '/' + entry.name);
+        }
+      }
+      resolve();
+    });
+  });
+}
 
 // ── FILE MODAL ──
 function openFile(idx) {

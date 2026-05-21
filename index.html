@@ -138,6 +138,19 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Instru
 .ni-label{font-size:10px;font-family:'DM Mono',monospace;color:var(--text3);transition:color .15s}
 .ni.active .ni-icon,.ni.active .ni-label{color:var(--accent)}
 
+/* LOGIN */
+.login-overlay{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px}
+.login-box{width:100%;max-width:320px}
+.login-logo{font-family:'DM Serif Display',serif;font-size:36px;font-weight:400;text-align:center;margin-bottom:6px}
+.login-logo em{color:var(--accent);font-style:normal}
+.login-sub{font-size:12px;color:var(--text3);font-family:'DM Mono',monospace;text-align:center;margin-bottom:32px}
+.login-label{font-size:11px;font-family:'DM Mono',monospace;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px;display:block}
+.login-input{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:var(--rs);padding:12px 14px;font-size:15px;color:var(--text);font-family:'Instrument Sans',sans-serif;outline:none;transition:border .15s;margin-bottom:12px}
+.login-input:focus{border-color:var(--accent)}
+.login-btn{width:100%;padding:14px;background:var(--accent);color:var(--accent-dark);border:none;border-radius:var(--r);font-size:15px;font-weight:600;font-family:'Instrument Sans',sans-serif;cursor:pointer;transition:all .15s;margin-top:4px}
+.login-btn:hover{background:var(--accent2)}
+.login-btn:active{transform:scale(.99)}
+.login-error{font-size:13px;color:var(--red);font-family:'DM Mono',monospace;text-align:center;margin-top:10px;min-height:20px}
 /* TOAST */
 .toast{position:fixed;top:60px;left:50%;transform:translateX(-50%) translateY(-20px);background:var(--bg3);border:1px solid var(--border2);border-radius:var(--rs);padding:10px 18px;font-size:13px;font-family:'DM Mono',monospace;color:var(--text);opacity:0;transition:all .3s;z-index:999;pointer-events:none;white-space:nowrap}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -152,6 +165,17 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Instru
 </style>
 </head>
 <body>
+<div class="login-overlay" id="login-overlay">
+  <div class="login-box">
+    <div class="login-logo">Mate<em>riały</em></div>
+    <div class="login-sub">studia.orlowski.ovh</div>
+    <label class="login-label">Hasło</label>
+    <input class="login-input" type="password" id="login-input" placeholder="Wpisz hasło…" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">Zaloguj się</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
 <div class="app">
   <div class="topbar">
     <div>
@@ -223,6 +247,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Instru
       <div class="install-step"><b>4.</b> Gotowe — ikona pojawi się na ekranie!</div>
     </div>
     <div class="setting-card">
+      <h4>🔐 Zmień hasło</h4>
+      <p>Domyślne hasło to <code style="font-family:'DM Mono',monospace;color:var(--accent)">materialy2024</code> — zmień je na własne!</p>
+      <input class="form-input" id="new-pass-input" type="password" placeholder="Nowe hasło…" style="margin-top:10px">
+      <input class="form-input" id="new-pass-confirm" type="password" placeholder="Powtórz hasło…">
+      <button class="btn-sm" onclick="changePassword()">Zmień hasło</button>
+    </div>
+    <div class="setting-card">
       <h4>🔑 Klucz Anthropic API</h4>
       <p>Potrzebny do funkcji AI (streszczanie, pytania do materiałów). Znajdziesz go na platform.claude.com</p>
       <div class="key-row">
@@ -277,6 +308,28 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Instru
 <div class="toast" id="toast"></div>
 
 <script>
+// ── LOGIN ──
+const DEFAULT_PASS = 'materialy2024';
+function getPassword() { return localStorage.getItem('mat_pass') || DEFAULT_PASS; }
+function checkLogin() {
+  if (sessionStorage.getItem('mat_logged') === '1') {
+    document.getElementById('login-overlay').style.display = 'none';
+  }
+}
+function doLogin() {
+  const val = document.getElementById('login-input').value;
+  if (val === getPassword()) {
+    sessionStorage.setItem('mat_logged', '1');
+    document.getElementById('login-overlay').style.display = 'none';
+    document.getElementById('login-input').value = '';
+  } else {
+    document.getElementById('login-error').textContent = 'Nieprawidłowe hasło';
+    document.getElementById('login-input').value = '';
+    setTimeout(() => document.getElementById('login-error').textContent = '', 2000);
+  }
+}
+checkLogin();
+
 // ── STATE ──
 let files = JSON.parse(localStorage.getItem('mat_files') || '[]');
 let apiKey = localStorage.getItem('mat_apikey') || '';
@@ -615,6 +668,18 @@ function clearAll() {
   updateAIStatus();
   renderAll();
   showToast('🗑️ Dane wyczyszczone');
+}
+
+function changePassword() {
+  const p1 = document.getElementById('new-pass-input').value.trim();
+  const p2 = document.getElementById('new-pass-confirm').value.trim();
+  if (!p1) { showToast('⚠️ Wpisz nowe hasło'); return; }
+  if (p1 !== p2) { showToast('⚠️ Hasła się nie zgadzają'); return; }
+  if (p1.length < 4) { showToast('⚠️ Hasło za krótkie (min. 4 znaki)'); return; }
+  localStorage.setItem('mat_pass', p1);
+  document.getElementById('new-pass-input').value = '';
+  document.getElementById('new-pass-confirm').value = '';
+  showToast('✅ Hasło zmienione');
 }
 
 // ── TOAST ──

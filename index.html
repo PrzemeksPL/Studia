@@ -215,7 +215,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Instru
 
     <!-- BIBLIOTEKA -->
     <div id="s-library" class="screen active">
-      <div class="breadcrumb" id="breadcrumb"></div>
+      <div style="display:flex;align-items:center;gap:8px;padding:12px 40px 0;flex-shrink:0">
+        <button id="back-btn" onclick="goBack()" style="display:none;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--rs);font-size:13px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--bg2);color:var(--text2);font-family:'Instrument Sans',sans-serif;transition:all .15s" onmouseover="this.style.borderColor='var(--border2)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">← Wstecz</button>
+        <div class="breadcrumb" id="breadcrumb" style="padding:0;margin:0"></div>
+      </div>
       <div class="toolbar">
         <button class="tool-btn primary" onclick="triggerUpload()" id="btn-upload">📄 Pliki</button>
         <button class="tool-btn primary" onclick="triggerFolderUpload()" id="btn-folder-upload">📂 Folder</button>
@@ -501,6 +504,19 @@ function renderBreadcrumb(){
   }).join('');
 }
 
+function goBack(){
+  if(folderPath.length > 1){
+    folderPath = folderPath.slice(0, -1);
+    currentFolderId = folderPath[folderPath.length-1].id;
+    renderLibrary();
+  }
+}
+
+function updateBackBtn(){
+  const btn = document.getElementById('back-btn');
+  if(btn) btn.style.display = folderPath.length > 1 ? 'flex' : 'none';
+}
+
 function navigateTo(idx){
   folderPath=folderPath.slice(0,idx+1);
   currentFolderId=folderPath[folderPath.length-1].id;
@@ -515,6 +531,7 @@ function openFolder(id,name){
 
 function renderLibrary(){
   renderBreadcrumb();
+  updateBackBtn();
   const q=document.getElementById('search-input').value.toLowerCase();
   const el=document.getElementById('file-list');
   let list;

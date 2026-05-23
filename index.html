@@ -262,13 +262,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Instru
         <div class="install-step"><b>2.</b> Dotknij ikony Udostępnij (□↑)</div>
         <div class="install-step"><b>3.</b> Wybierz „Dodaj do ekranu głównego"</div>
       </div>
-      <div class="setting-card">
-        <h4>🔑 Klucz Anthropic API</h4>
-        <p>Potrzebny do funkcji AI. Wpisz raz — zostaje zapisany.</p>
-        <div class="key-row">
-          <input class="form-input" id="api-key-input" type="password" placeholder="sk-ant-…">
-          <button class="btn-sm" onclick="saveKey()">Zapisz</button>
-        </div>
       </div>
       <div class="setting-card">
         <h4>📊 Statystyki</h4>
@@ -387,9 +380,7 @@ let currentItemId = null;
 let renameTargetId = null;
 
 async function initApp(){
-  apiKey = localStorage.getItem('mat_apikey')||'';
-  document.getElementById('api-key-input').value = apiKey;
-  updateAIStatus();
+  document.getElementById('topbar-sub').textContent = '0 plików · 0 folderów';
   await loadItems();
 }
 
@@ -456,7 +447,7 @@ function showScreen(name){
   document.getElementById('s-'+name).classList.add('active');
   document.getElementById('snav-'+name)?.classList.add('active');
   document.getElementById('mnav-'+name)?.classList.add('active');
-  if(name==='ai'){ renderDocChips(); updateAIStatus(); }
+  if(name==='ai'){ renderDocChips();  }
   if(name==='settings') renderStats();
 }
 
@@ -787,10 +778,6 @@ async function deleteRecursive(folderId){
 }
 
 // ── AI ──
-function updateAIStatus(){
-  const dot=document.getElementById('ai-dot');
-  const txt=document.getElementById('ai-status-text');
-  if(apiKey){dot.classList.add('ok');txt.textContent='API gotowe';}
   else{dot.classList.remove('ok');txt.textContent='Brak klucza API — skonfiguruj w Ustawieniach';}
 }
 function renderDocChips(){
@@ -843,7 +830,7 @@ async function sendAI(){
 }
 
 // ── SETTINGS ──
-function saveKey(){ apiKey=document.getElementById('api-key-input').value.trim(); localStorage.setItem('mat_apikey',apiKey); updateAIStatus(); showToast('✅ Klucz zapisany'); }
+function saveKey(){ apiKey=document.getElementById('api-key-input').value.trim(); localStorage.setItem('mat_apikey',apiKey);  showToast('✅ Klucz zapisany'); }
 function renderStats(){
   const fc=items.filter(i=>i.type==='file').length;
   const dc=items.filter(i=>i.type==='folder').length;

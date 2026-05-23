@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Materiały">
@@ -149,6 +149,78 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Instru
 /* TOAST */
 .toast{position:fixed;top:60px;left:50%;transform:translateX(-50%) translateY(-20px);background:var(--bg3);border:1px solid var(--border2);border-radius:var(--rs);padding:10px 18px;font-size:13px;font-family:'DM Mono',monospace;color:var(--text);opacity:0;transition:all .3s;z-index:999;pointer-events:none;white-space:nowrap}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── RESPONSIVE ── */
+@media (min-width: 768px) {
+  html,body { overflow: auto; }
+  .app {
+    max-width: 100%;
+    height: auto;
+    min-height: 100vh;
+    flex-direction: row;
+    align-items: stretch;
+  }
+  /* SIDEBAR */
+  .bnav {
+    position: fixed;
+    left: 0; top: 0; bottom: 0;
+    width: 220px;
+    flex-direction: column;
+    justify-content: flex-start;
+    padding: 24px 12px 24px;
+    border-top: none;
+    border-right: 1px solid var(--border);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    transform: none;
+    max-width: none;
+    gap: 4px;
+    z-index: 100;
+  }
+  .ni { flex: 0; flex-direction: row; justify-content: flex-start; padding: 10px 14px; border-radius: 10px; gap: 10px; }
+  .ni:hover { background: var(--bg3); }
+  .ni.active { background: rgba(200,245,90,.1); }
+  .ni-icon { font-size: 20px; }
+  .ni-label { font-size: 13px; font-weight: 500; }
+  /* MAIN CONTENT */
+  .topbar { padding: 28px 32px 16px; }
+  .topbar h1 { font-size: 32px; }
+  .app > .topbar,
+  .app > .screen { margin-left: 220px; }
+  .screen { padding: 0 0 40px; }
+  .breadcrumb { padding: 12px 32px 8px; }
+  .toolbar { padding: 8px 32px 12px; gap: 10px; }
+  .search-row { padding: 0 32px 12px; }
+  .file-list { padding: 0 32px; }
+  .settings-wrap { padding: 16px 32px 0; }
+  .ai-wrap { padding: 16px 32px 0; }
+  /* FILE GRID on desktop */
+  .file-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); align-content: start; gap: 10px; }
+  .file-item { margin-bottom: 0; }
+  /* LOGIN */
+  .login-overlay { left: 0; transform: none; }
+  /* MODALS */
+  .modal-overlay { left: 220px; max-width: calc(100% - 220px); transform: none; }
+  .dialog-overlay { left: 220px; }
+  /* TOPBAR padding fix */
+  .topbar { padding: 28px 32px 16px; }
+  /* TOAST */
+  .toast { left: calc(220px + 50%); transform: translateX(-50%) translateY(-20px); }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  /* TOOL BUTTONS bigger */
+  .tool-btn { padding: 10px 18px; font-size: 14px; }
+  /* FILE items bigger */
+  .item-name { font-size: 15px; }
+}
+
+@media (min-width: 1200px) {
+  .bnav { width: 240px; }
+  .app > .topbar,
+  .app > .screen { margin-left: 240px; }
+  .modal-overlay { left: 240px; max-width: 600px; }
+  .file-list { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+  .toast { left: calc(240px + 50%); }
+}
 </style>
 </head>
 <body>
@@ -177,8 +249,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Instru
   <div id="s-library" class="screen active">
     <div class="breadcrumb" id="breadcrumb"></div>
     <div class="toolbar">
-      <button class="tool-btn primary" onclick="triggerUpload()">⬆️ Wgraj</button>
-      <button class="tool-btn" onclick="openNewFolderDialog()">📁 Nowy folder</button>
+      <button class="tool-btn primary" onclick="triggerUpload()">📄 Pliki</button>
+      <button class="tool-btn primary" onclick="triggerFolderUpload()">📂 Folder</button>
+      <button class="tool-btn" onclick="openNewFolderDialog()">➕ Nowy folder</button>
     </div>
     <div class="search-row">
       <span class="si">🔍</span>
@@ -186,6 +259,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Instru
     </div>
     <div class="file-list" id="file-list"></div>
     <input type="file" id="file-input" multiple accept=".pdf,.pptx,.ppt,.docx,.doc,.jpg,.jpeg,.png,.txt,.mp4,.zip" style="display:none" onchange="handleUpload(this)">
+    <input type="file" id="folder-input" multiple webkitdirectory style="display:none" onchange="handleFolderUpload(this)">
   </div>
 
   <!-- AI -->
@@ -449,6 +523,50 @@ function updateTopbar(){
 
 // ── UPLOAD ──
 function triggerUpload(){ document.getElementById('file-input').click(); }
+function triggerFolderUpload(){ document.getElementById('folder-input').click(); }
+
+function handleFolderUpload(input){
+  const files = Array.from(input.files);
+  if(!files.length) return;
+  // Zbierz unikalne ścieżki folderów i utwórz je
+  const folderMap = {}; // ścieżka -> id
+  folderMap[''] = currentFolderId;
+  // Najpierw utwórz strukturę folderów
+  files.forEach(f=>{
+    const parts = f.webkitRelativePath.split('/');
+    // parts[0] = główny folder, parts[last] = plik
+    for(let i=0; i<parts.length-1; i++){
+      const pathKey = parts.slice(0,i+1).join('/');
+      if(!folderMap[pathKey]){
+        const parentKey = parts.slice(0,i).join('/');
+        const parentId = folderMap[parentKey] || currentFolderId;
+        const name = parts[i];
+        // Sprawdź czy folder już istnieje
+        let existing = items.find(it=>it.type==='folder'&&it.parentId===parentId&&it.name===name);
+        if(!existing){
+          existing = { id:'d_'+Date.now()+'_'+Math.random().toString(36).slice(2), name, type:'folder', parentId, ts:Date.now() };
+          items.push(existing);
+        }
+        folderMap[pathKey] = existing.id;
+      }
+    }
+  });
+  // Teraz wgraj pliki
+  let done=0;
+  files.forEach(f=>{
+    const parts = f.webkitRelativePath.split('/');
+    const folderPath = parts.slice(0,parts.length-1).join('/');
+    const parentId = folderMap[folderPath] || currentFolderId;
+    const reader = new FileReader();
+    reader.onload = e=>{
+      items.push({ id:'f_'+Date.now()+'_'+Math.random().toString(36).slice(2), name:f.name, type:'file', parentId, ts:Date.now(), size:f.size, dataUrl:e.target.result, ext:f.name.split('.').pop().toLowerCase() });
+      done++;
+      if(done===files.length){ save(); renderLibrary(); showToast('✅ Wgrano '+done+' plików ze strukturą folderów'); }
+    };
+    reader.readAsDataURL(f);
+  });
+  input.value='';
+}
 
 function handleUpload(input){
   const files=Array.from(input.files);

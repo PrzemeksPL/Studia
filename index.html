@@ -209,9 +209,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Instru
     <div class="nav-item active" onclick="showScreen('library')" id="snav-library">
       <span class="nav-icon">📚</span> Biblioteka
     </div>
-    <div class="nav-item" onclick="showScreen('ai')" id="snav-ai">
-      <span class="nav-icon">✨</span> AI Asystent
-    </div>
     <div class="nav-item" onclick="showScreen('settings')" id="snav-settings">
       <span class="nav-icon">⚙️</span> Ustawienia
     </div>
@@ -257,26 +254,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Instru
       <input type="file" id="folder-input" multiple webkitdirectory style="display:none" onchange="handleFolderUpload(this)">
     </div>
 
-    <!-- AI -->
-    <div id="s-ai" class="screen">
-      <div class="ai-top">
-        <h3>AI Asystent</h3>
-        <p>Zadaj pytanie do swoich materiałów lub poproś o streszczenie.</p>
-        <div class="ai-status"><div class="dot" id="ai-dot"></div><span id="ai-status-text">Sprawdzam…</span></div>
-      </div>
-      <div class="doc-select-box">
-        <p>Wybierz materiał:</p>
-        <div class="doc-chips" id="doc-chips"></div>
-      </div>
-      <div class="chat-area" id="chat-area">
-        <div class="msg ai">👋 Cześć! Wybierz materiał i zadaj pytanie.</div>
-      </div>
-      <div class="ai-input-row">
-        <input class="form-input" id="ai-input" placeholder="Zadaj pytanie…" onkeydown="if(event.key==='Enter')sendAI()">
-        <button class="send-btn" id="send-btn" onclick="sendAI()">↑</button>
-      </div>
-    </div>
-
     <!-- SETTINGS -->
     <div id="s-settings" class="screen">
       <div class="install-box">
@@ -306,9 +283,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Instru
   <div class="mobile-nav-inner">
     <div class="mni active" onclick="showScreen('library')" id="mnav-library">
       <div class="mni-icon">📚</div><div class="mni-label">Biblioteka</div>
-    </div>
-    <div class="mni" onclick="showScreen('ai')" id="mnav-ai">
-      <div class="mni-icon">✨</div><div class="mni-label">AI</div>
     </div>
     <div class="mni" onclick="showScreen('settings')" id="mnav-settings">
       <div class="mni-icon">⚙️</div><div class="mni-label">Ustawienia</div>

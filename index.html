@@ -609,6 +609,19 @@ async function handleFolderUpload(input){
   input.value='';
 }
 
+
+function sanitizePath(str) {
+  return str
+    .replace(/ą/g,'a').replace(/ć/g,'c').replace(/ę/g,'e')
+    .replace(/ł/g,'l').replace(/ń/g,'n').replace(/ó/g,'o')
+    .replace(/ś/g,'s').replace(/ź/g,'z').replace(/ż/g,'z')
+    .replace(/Ą/g,'A').replace(/Ć/g,'C').replace(/Ę/g,'E')
+    .replace(/Ł/g,'L').replace(/Ń/g,'N').replace(/Ó/g,'O')
+    .replace(/Ś/g,'S').replace(/Ź/g,'Z').replace(/Ż/g,'Z')
+    .replace(/[^a-zA-Z0-9._\-]/g,'_')
+    .replace(/_+/g,'_');
+}
+
 async function uploadFiles(fileList){
   const prog=document.getElementById('upload-progress');
   const fill=document.getElementById('progress-fill');
@@ -617,7 +630,7 @@ async function uploadFiles(fileList){
   let done=0;
   for(const {file,parentId} of fileList){
     const id='f_'+Date.now()+'_'+Math.random().toString(36).slice(2);
-    const path=id+'/'+file.name;
+    const path=id+'/'+sanitizePath(file.name);
     statusText.textContent=`Wgrywanie ${done+1}/${fileList.length}: ${file.name}`;
     try {
       await uploadFile(path, file, p=>{

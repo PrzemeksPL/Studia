@@ -298,7 +298,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Instru
 
 <div class="toast" id="toast"></div>
 
-<script src="https://apis.google.com/js/api.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
 const GDRIVE_CLIENT_ID = '839065910517-6el7nkp4ier7svo82nfrn8g2d30oq5ne.apps.googleusercontent.com';
 const GDRIVE_SCOPES = 'https://www.googleapis.com/auth/drive.readonly';
@@ -488,21 +488,27 @@ function checkGDriveToken(){
 }
 
 function connectGDrive(){
-  gapi.load('client:auth2', async ()=>{
-    try {
-      await gapi.client.init({ clientId: GDRIVE_CLIENT_ID, scope: GDRIVE_SCOPES, discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'] });
-      const authInstance = gapi.auth2.getAuthInstance();
-      const user = await authInstance.signIn();
-      gdriveToken = user.getAuthResponse().access_token;
-      gdriveUser = user.getBasicProfile().getName();
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: GDRIVE_CLIENT_ID,
+    scope: GDRIVE_SCOPES,
+    callback: async (response) => {
+      if(response.error){ showToast('❌ Błąd: '+response.error); return; }
+      gdriveToken = response.access_token;
+      // Pobierz info o użytkowniku
+      try {
+        const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {headers:{Authorization:'Bearer '+gdriveToken}});
+        const u = await r.json();
+        gdriveUser = u.name || u.email || 'Użytkownik';
+      } catch(e){ gdriveUser = 'Użytkownik'; }
       sessionStorage.setItem('gdrive_token', gdriveToken);
       sessionStorage.setItem('gdrive_user', gdriveUser);
       updateDriveUI();
       loadDriveFolder('root');
       loadDriveFilesForLibrary();
       showToast('✅ Połączono z Google Drive!');
-    } catch(e){ showToast('❌ Błąd połączenia z Drive'); console.error(e); }
+    }
   });
+  client.requestAccessToken();
 }
 
 function disconnectGDrive(){

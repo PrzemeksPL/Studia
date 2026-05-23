@@ -409,8 +409,6 @@ function doLogin(){
     setTimeout(()=>document.getElementById('login-error').textContent='',2000);
   }
 }
-checkLogin();
-
 // ── STATE ──
 // Struktura: { id, name, type:'folder'|'file', parentId, ts, size, dataUrl, ext }
 let items = [];
@@ -790,6 +788,8 @@ function clearAll(){
   document.getElementById('api-key-input').value='';
   updateAIStatus();renderLibrary();showToast('🗑️ Wyczyszczono');
 }
+
+checkLogin();
 
 // ── TOAST ──
 function showToast(msg){

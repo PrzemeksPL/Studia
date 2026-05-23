@@ -777,58 +777,6 @@ async function deleteRecursive(folderId){
   await removeItem(folderId);
 }
 
-// ── AI ──
-  else{dot.classList.remove('ok');txt.textContent='Brak klucza API — skonfiguruj w Ustawieniach';}
-}
-function renderDocChips(){
-  const wrap=document.getElementById('doc-chips');
-  const files=items.filter(i=>i.type==='file');
-  if(!files.length){wrap.innerHTML='<span style="font-size:13px;color:var(--text3)">Brak plików</span>';return;}
-  wrap.innerHTML=files.map(f=>`<div class="dchip ${selectedDocId===f.id?'sel':''}" onclick="selectDoc('${f.id}')">${f.name}</div>`).join('');
-}
-function selectDoc(id){selectedDocId=id;renderDocChips();}
-async function sendAI(){
-  const input=document.getElementById('ai-input');
-  const q=input.value.trim();
-  if(!q) return;
-  if(!apiKey){showToast('⚠️ Ustaw klucz API');showScreen('settings');return;}
-  input.value='';
-  const chat=document.getElementById('chat-area');
-  chat.innerHTML+=`<div class="msg user">${q}</div>`;
-  chat.innerHTML+=`<div class="msg thinking" id="thinking-msg">Analizuję…</div>`;
-  chat.scrollTop=chat.scrollHeight;
-  document.getElementById('send-btn').disabled=true;
-  let systemPrompt='Jesteś pomocnym asystentem studenta. Odpowiadaj po polsku, zwięźle i konkretnie.';
-  let userContent=q;
-  if(selectedDocId){
-    const f=items.find(i=>i.id===selectedDocId);
-    if(f){ systemPrompt+=` Analizujesz materiał: "${f.name}".`; userContent=`Plik: "${f.name}"\nPytanie: ${q}`; }
-  }
-  try{
-    const res=await fetch('https://anthropic-proxy.przemek-orlowski2003.workers.dev',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({apiKey,model:'claude-sonnet-4-20250514',max_tokens:1024,system:systemPrompt,messages:[{role:'user',content:userContent}]})
-    });
-    const data=await res.json();
-    console.log('AI response:', JSON.stringify(data).slice(0,200));
-    if(data.error){
-      document.getElementById('thinking-msg')?.remove();
-      chat.innerHTML+=`<div class="msg ai" style="color:var(--red)">Błąd API: ${data.error.message||JSON.stringify(data.error)}</div>`;
-    } else {
-      const reply=data.content?.[0]?.text||'Brak odpowiedzi.';
-      document.getElementById('thinking-msg')?.remove();
-      chat.innerHTML+=`<div class="msg ai">${reply}</div>`;
-    }
-  }catch(e){
-    document.getElementById('thinking-msg')?.remove();
-    chat.innerHTML+=`<div class="msg ai" style="color:var(--red)">Błąd połączenia: ${e.message}</div>`;
-    console.error('AI error:', e);
-  }
-  document.getElementById('send-btn').disabled=false;
-  chat.scrollTop=chat.scrollHeight;
-}
-
 // ── SETTINGS ──
 function saveKey(){ apiKey=document.getElementById('api-key-input').value.trim(); localStorage.setItem('mat_apikey',apiKey);  showToast('✅ Klucz zapisany'); }
 function renderStats(){

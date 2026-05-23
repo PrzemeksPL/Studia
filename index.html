@@ -850,12 +850,19 @@ async function sendAI(){
       body:JSON.stringify({apiKey,model:'claude-sonnet-4-20250514',max_tokens:1024,system:systemPrompt,messages:[{role:'user',content:userContent}]})
     });
     const data=await res.json();
-    const reply=data.content?.[0]?.text||'Brak odpowiedzi.';
-    document.getElementById('thinking-msg')?.remove();
-    chat.innerHTML+=`<div class="msg ai">${reply}</div>`;
+    console.log('AI response:', JSON.stringify(data).slice(0,200));
+    if(data.error){
+      document.getElementById('thinking-msg')?.remove();
+      chat.innerHTML+=`<div class="msg ai" style="color:var(--red)">Błąd API: ${data.error.message||JSON.stringify(data.error)}</div>`;
+    } else {
+      const reply=data.content?.[0]?.text||'Brak odpowiedzi.';
+      document.getElementById('thinking-msg')?.remove();
+      chat.innerHTML+=`<div class="msg ai">${reply}</div>`;
+    }
   }catch(e){
     document.getElementById('thinking-msg')?.remove();
-    chat.innerHTML+=`<div class="msg ai" style="color:var(--red)">Błąd połączenia.</div>`;
+    chat.innerHTML+=`<div class="msg ai" style="color:var(--red)">Błąd połączenia: ${e.message}</div>`;
+    console.error('AI error:', e);
   }
   document.getElementById('send-btn').disabled=false;
   chat.scrollTop=chat.scrollHeight;
